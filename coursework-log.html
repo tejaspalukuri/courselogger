@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>logbook — coursework tracker</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,500;0,600;1,500&family=IBM+Plex+Mono:wght@400;500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#14171A; --panel:#1B1F23; --raised:#20252A; --border:#2B3136; --border-strong:#3A4147;
+    --text:#E9E6DE; --text-dim:#9AA0A6; --text-mute:#666E75;
+    --teal:#6FB39A; --teal-dim:#3C5A4E; --amber:#D6A45C; --amber-dim:#5A4A2F;
+    --red:#C1666B; --red-dim:#4A2F31; --focus:#6FB39A;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{
+    background:var(--bg); color:var(--text); font-family:'Inter',sans-serif;
+    min-height:100vh; -webkit-font-smoothing:antialiased;
+  }
+  a{color:inherit;}
+  .mono{font-family:'IBM Plex Mono',monospace;}
+  .serif{font-family:'Fraunces',serif;}
+
+  /* ---- top bar ---- */
+  .topbar{
+    display:flex; align-items:center; justify-content:space-between;
+    padding:18px 32px; border-bottom:1px solid var(--border);
+  }
+  .brand{display:flex; align-items:baseline; gap:10px;}
+  .brand .mark{
+    width:26px; height:26px; border-radius:6px; background:var(--teal);
+    display:flex; align-items:center; justify-content:center;
+    color:#0F1B17; font-family:'IBM Plex Mono',monospace; font-weight:600; font-size:13px;
+  }
+  .brand h1{font-family:'Fraunces',serif; font-weight:600; font-size:20px; letter-spacing:0.2px;}
+  .brand .sub{color:var(--text-mute); font-size:12.5px; font-family:'IBM Plex Mono',monospace;}
+  .userchip{
+    display:flex; align-items:center; gap:8px; font-size:13px; color:var(--text-dim);
+  }
+  .userchip .dot{width:6px; height:6px; border-radius:50%; background:var(--teal);}
+
+  /* ---- layout ---- */
+  .layout{display:grid; grid-template-columns:250px 1fr 260px; gap:0; max-width:1280px; margin:0 auto;}
+  @media (max-width:980px){ .layout{grid-template-columns:1fr;} .side, .rightcol{border:none;} }
+
+  /* ---- left sidebar: repos ---- */
+  .side{border-right:1px solid var(--border); padding:24px 18px;}
+  .side h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-mute);
+    margin-bottom:14px; font-family:'IBM Plex Mono',monospace;
+  }
+  .repo{
+    display:block; padding:10px 12px; border-radius:8px; margin-bottom:4px; cursor:pointer;
+    border:1px solid transparent;
+  }
+  .repo:hover{background:var(--raised);}
+  .repo.active{background:var(--raised); border-color:var(--border-strong);}
+  .repo-row{display:flex; align-items:center; justify-content:space-between;}
+  .repo-name{font-size:14px; font-weight:500;}
+  .repo-badge{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-mute);
+    background:rgba(255,255,255,0.03); padding:1px 6px; border-radius:4px;
+  }
+  .repo-meta{font-size:12px; color:var(--text-mute); margin-top:3px; font-family:'IBM Plex Mono',monospace;}
+  .repo-bar{height:3px; border-radius:2px; background:var(--border); margin-top:8px; overflow:hidden;}
+  .repo-bar span{display:block; height:100%; background:var(--teal);}
+  .new-repo{
+    margin-top:16px; width:100%; text-align:left; padding:9px 12px; border-radius:8px;
+    background:none; border:1px dashed var(--border-strong); color:var(--text-dim);
+    font-size:13px; cursor:pointer; font-family:'Inter',sans-serif;
+  }
+  .new-repo:hover{color:var(--text); border-color:var(--teal);}
+
+  /* ---- main column ---- */
+  .main{padding:24px 32px; border-right:1px solid var(--border);}
+  .composer{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px;
+    margin-bottom:28px;
+  }
+  .composer-top{display:flex; gap:10px; margin-bottom:10px;}
+  select, input[type=text]{
+    background:var(--raised); border:1px solid var(--border-strong); color:var(--text);
+    border-radius:6px; padding:8px 10px; font-family:'IBM Plex Mono',monospace; font-size:13px;
+  }
+  select{flex:0 0 auto;}
+  textarea{
+    width:100%; background:var(--raised); border:1px solid var(--border-strong); color:var(--text);
+    border-radius:6px; padding:10px 12px; font-family:'Inter',sans-serif; font-size:14px;
+    resize:vertical; min-height:52px; line-height:1.5;
+  }
+  textarea:focus, select:focus, input:focus{outline:none; border-color:var(--teal);}
+  .composer-bottom{display:flex; align-items:center; justify-content:space-between; margin-top:12px;}
+  .tag-row{display:flex; gap:6px;}
+  .tagbtn{
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; padding:5px 9px; border-radius:5px;
+    border:1px solid var(--border-strong); background:transparent; color:var(--text-dim); cursor:pointer;
+  }
+  .tagbtn.on{border-color:var(--teal); color:var(--teal); background:rgba(111,179,154,0.08);}
+  .commit-btn{
+    font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; padding:9px 16px;
+    border-radius:6px; background:var(--teal); color:#0F1B17; border:none; cursor:pointer;
+  }
+  .commit-btn:hover{background:#7FC2A7;}
+
+  .log-header{
+    display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;
+  }
+  .log-header h2{font-family:'Fraunces',serif; font-size:17px; font-weight:600;}
+  .log-header .count{color:var(--text-mute); font-size:12.5px; font-family:'IBM Plex Mono',monospace;}
+
+  .commit{
+    display:flex; gap:14px; padding:14px 0; border-bottom:1px solid var(--border); position:relative;
+  }
+  .commit:last-child{border-bottom:none;}
+  .commit .rail{
+    display:flex; flex-direction:column; align-items:center; padding-top:3px;
+  }
+  .commit .node{width:9px; height:9px; border-radius:50%; background:var(--teal); border:2px solid var(--bg);
+    box-shadow:0 0 0 1px var(--border-strong);}
+  .commit .line{flex:1; width:1px; background:var(--border); margin-top:4px;}
+  .commit-body{flex:1; min-width:0; padding-bottom:2px;}
+  .commit-top{display:flex; align-items:baseline; gap:10px; flex-wrap:wrap;}
+  .hash{font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--amber); background:rgba(214,164,92,0.08); padding:1px 6px; border-radius:4px;}
+  .commit-repo{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-mute);}
+  .commit-date{font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-mute); margin-left:auto;}
+  .commit-msg{font-size:14.5px; margin-top:6px; line-height:1.5;}
+  .commit-tags{display:flex; gap:6px; margin-top:8px; flex-wrap:wrap;}
+  .tag-pill{
+    font-family:'IBM Plex Mono',monospace; font-size:11px; padding:2px 8px; border-radius:10px;
+  }
+  .tag-pill.build{background:var(--teal-dim); color:#B9E6D4;}
+  .tag-pill.blocker{background:var(--red-dim); color:#F0C1C4;}
+  .tag-pill.reading{background:var(--amber-dim); color:#F0D3A3;}
+  .tag-pill.milestone{background:rgba(255,255,255,0.06); color:var(--text-dim);}
+  .diffstat{display:flex; align-items:center; gap:6px; margin-top:9px;}
+  .diffstat .bars{display:flex; gap:2px;}
+  .diffstat .seg{width:9px; height:8px; border-radius:1px; background:var(--border);}
+  .diffstat .seg.h{background:var(--teal);}
+  .diffstat .label{font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-mute);}
+
+  /* ---- right column ---- */
+  .rightcol{padding:24px 20px;}
+  .rightcol h2{
+    font-size:11px; text-transform:uppercase; letter-spacing:1.2px; color:var(--text-mute);
+    margin-bottom:14px; font-family:'IBM Plex Mono',monospace;
+  }
+  .stat-card{
+    background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:14px;
+    margin-bottom:12px;
+  }
+  .stat-num{font-family:'Fraunces',serif; font-size:26px; font-weight:600;}
+  .stat-label{font-size:12.5px; color:var(--text-dim); margin-top:2px;}
+  .streak{
+    display:flex; gap:3px; margin-top:10px; flex-wrap:wrap;
+  }
+  .streak .d{width:12px; height:12px; border-radius:3px; background:var(--border);}
+  .streak .d.on1{background:var(--teal-dim);}
+  .streak .d.on2{background:var(--teal);}
+  .blocker-item{
+    display:flex; gap:8px; align-items:flex-start; font-size:12.5px; color:var(--text-dim);
+    padding:8px 0; border-bottom:1px solid var(--border);
+  }
+  .blocker-item:last-child{border:none;}
+  .blocker-item .b-dot{width:6px; height:6px; border-radius:50%; background:var(--red); margin-top:4px; flex:0 0 auto;}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <div class="mark">$_</div>
+    <h1>logbook</h1>
+    <span class="sub">// UTD — freshman year</span>
+  </div>
+  <div class="userchip"><span class="dot"></span> tejas · main</div>
+</div>
+
+<div id="configBanner" style="display:none; background:var(--amber-dim); color:#F0D3A3; font-family:'IBM Plex Mono',monospace; font-size:12.5px; padding:10px 32px; border-bottom:1px solid var(--border);">
+  no script url set — edit SCRIPT_URL near the bottom of this file, then reload
+</div>
+
+<div class="layout">
+
+  <!-- LEFT: repos -->
+  <div class="side">
+    <h2>repositories</h2>
+    <div id="repoList"></div>
+    <button class="new-repo" id="newRepoBtn">+ new repository</button>
+  </div>
+
+  <!-- MAIN: composer + log -->
+  <div class="main">
+    <div class="composer">
+      <div class="composer-top">
+        <select id="repoSelect">
+          <option>CS 1337 — Comp Sci I</option>
+          <option>MATH 2417 — Calc I</option>
+          <option>PHYS 2325 — Mechanics</option>
+          <option>CS 1200 — Intro Seminar</option>
+          <option>robotics-club</option>
+        </select>
+        <input type="text" id="hoursInput" placeholder="hrs" style="width:64px;">
+      </div>
+      <textarea id="msgInput" placeholder="what did you get done? e.g. finished recursion lab, still stuck on the memoization edge case"></textarea>
+      <div class="composer-bottom">
+        <div class="tag-row" id="tagRow">
+          <button class="tagbtn on" data-tag="build">build</button>
+          <button class="tagbtn" data-tag="reading">reading</button>
+          <button class="tagbtn" data-tag="blocker">blocker</button>
+          <button class="tagbtn" data-tag="milestone">milestone</button>
+        </div>
+        <button class="commit-btn" id="commitBtn">commit →</button>
+      </div>
+    </div>
+
+    <div class="log-header">
+      <h2>activity log</h2>
+      <span class="count" id="commitCount">— commits</span>
+    </div>
+    <div id="logStream"></div>
+
+  </div>
+
+  <!-- RIGHT: stats -->
+  <div class="rightcol">
+    <h2>this week</h2>
+    <div class="stat-card">
+      <div class="stat-num" id="weekCommits">0</div>
+      <div class="stat-label">commits logged</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num" id="weekHours">0</div>
+      <div class="stat-label">hours tracked</div>
+    </div>
+
+    <h2 style="margin-top:22px;">streak</h2>
+    <div class="stat-card">
+      <div class="stat-label" style="margin-bottom:2px;">last 21 days</div>
+      <div class="streak" id="streakGrid"></div>
+    </div>
+
+    <h2 style="margin-top:22px;">open blockers</h2>
+    <div class="stat-card" id="blockerCard">
+      <div class="blocker-item"><span class="b-dot"></span> none yet</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzHcHToK6vNF52vuXArI9vWrcIPjsm38h5wWQwnQXrYZIJ_FT8VaJSgrxHcbTUzeaHIGg/exec";
+
+let commits = [];
+let activeTags = new Set(["build"]);
+
+function timeAgo(iso){
+  const d = new Date(iso), diff = (Date.now()-d)/1000;
+  if(diff<3600) return Math.max(1,Math.round(diff/60))+"m ago";
+  if(diff<86400) return Math.round(diff/3600)+"h ago";
+  const days = Math.round(diff/86400);
+  return days===1 ? "yesterday" : days+"d ago";
+}
+function shortRepo(name){
+  return name.split(" ")[0].toLowerCase().replace(/[^a-z0-9]/g,"");
+}
+
+async function loadCommits(){
+  if(SCRIPT_URL.startsWith("PASTE_")){
+    document.getElementById('configBanner').style.display = 'block';
+    return;
+  }
+  try{
+    const res = await fetch(SCRIPT_URL);
+    const data = await res.json();
+    commits = data.commits || [];
+    render();
+  }catch(err){
+    document.getElementById('logStream').innerHTML =
+      '<p style="color:var(--red); font-family:\'IBM Plex Mono\',monospace; font-size:13px;">could not reach the sheet — check SCRIPT_URL and that the web app is deployed with "anyone" access.</p>';
+  }
+}
+
+async function postCommit(payload){
+  await fetch(SCRIPT_URL, {
+    method: "POST",
+    headers: { "Content-Type": "text/plain" }, // avoids CORS preflight against Apps Script
+    body: JSON.stringify(payload)
+  });
+}
+
+function render(){
+  const stream = document.getElementById('logStream');
+  document.getElementById('commitCount').textContent = commits.length + " commits · this semester";
+
+  stream.innerHTML = commits.map((c,i) => `
+    <div class="commit">
+      <div class="rail"><div class="node"></div>${i<commits.length-1 ? '<div class="line"></div>' : ''}</div>
+      <div class="commit-body">
+        <div class="commit-top">
+          <span class="hash">${c.hash}</span>
+          <span class="commit-repo">${shortRepo(c.repo)}</span>
+          <span class="commit-date">${timeAgo(c.timestamp)}</span>
+        </div>
+        <div class="commit-msg">${c.message}</div>
+        <div class="commit-tags">${c.tags.map(t=>`<span class="tag-pill ${t}">${t}</span>`).join('')}</div>
+        <div class="diffstat">
+          <div class="bars">${diffBars(c.hours)}</div>
+          <span class="label">~${c.hours || 0} hrs</span>
+        </div>
+      </div>
+    </div>`).join('');
+
+  const repos = [...new Set(commits.map(c=>c.repo))];
+  document.getElementById('repoList').innerHTML = repos.map(r => {
+    const rc = commits.filter(c=>c.repo===r);
+    const last = rc[0];
+    const pct = Math.min(100, rc.length*8);
+    return `<div class="repo">
+      <div class="repo-row"><span class="repo-name">${r}</span><span class="repo-badge">${rc.length}</span></div>
+      <div class="repo-meta">last commit ${timeAgo(last.timestamp)}</div>
+      <div class="repo-bar"><span style="width:${pct}%"></span></div>
+    </div>`;
+  }).join('') || '<p style="color:var(--text-mute); font-size:13px;">no commits yet — log your first one.</p>';
+
+  const weekAgo = Date.now() - 7*86400000;
+  const weekCommits = commits.filter(c => new Date(c.timestamp).getTime() > weekAgo);
+  document.getElementById('weekCommits').textContent = weekCommits.length;
+  document.getElementById('weekHours').textContent =
+    weekCommits.reduce((s,c)=>s+(parseFloat(c.hours)||0),0).toFixed(1);
+
+  const streak = document.getElementById('streakGrid');
+  let cells = '';
+  for(let i=20;i>=0;i--){
+    const dayStart = Date.now() - i*86400000;
+    const count = commits.filter(c=>{
+      const t = new Date(c.timestamp).getTime();
+      return t > dayStart - 43200000 && t < dayStart + 43200000;
+    }).length;
+    const cls = count===0 ? '' : count===1 ? 'on1' : 'on2';
+    cells += `<div class="d ${cls}"></div>`;
+  }
+  streak.innerHTML = cells;
+
+  const blockers = commits.filter(c => c.tags.includes('blocker'));
+  document.getElementById('blockerCard').innerHTML = blockers.length
+    ? blockers.map(b=>`<div class="blocker-item"><span class="b-dot"></span> ${b.message} — ${shortRepo(b.repo)}</div>`).join('')
+    : '<div class="blocker-item"><span class="b-dot" style="background:var(--teal);"></span> none open</div>';
+}
+
+function diffBars(hours){
+  const filled = Math.max(1, Math.min(5, Math.round((parseFloat(hours)||0))));
+  let out = '';
+  for(let i=0;i<5;i++) out += `<div class="seg ${i<filled?'h':''}"></div>`;
+  return out;
+}
+
+document.getElementById('tagRow').addEventListener('click', e => {
+  const btn = e.target.closest('.tagbtn');
+  if(!btn) return;
+  const tag = btn.dataset.tag;
+  if(activeTags.has(tag)) activeTags.delete(tag); else activeTags.add(tag);
+  btn.classList.toggle('on');
+});
+
+document.getElementById('commitBtn').addEventListener('click', async () => {
+  const msg = document.getElementById('msgInput').value.trim();
+  if(!msg) return;
+  const payload = {
+    repo: document.getElementById('repoSelect').value,
+    message: msg,
+    tags: [...activeTags],
+    hours: document.getElementById('hoursInput').value || "0.5"
+  };
+  document.getElementById('commitBtn').textContent = "committing...";
+  await postCommit(payload);
+  document.getElementById('msgInput').value = "";
+  document.getElementById('hoursInput').value = "";
+  document.getElementById('commitBtn').textContent = "commit →";
+  loadCommits();
+});
+
+document.getElementById('newRepoBtn').addEventListener('click', () => {
+  const name = prompt("new repository name (e.g. CS 2305 — Discrete Math):");
+  if(name){
+    const opt = document.createElement('option');
+    opt.textContent = name;
+    document.getElementById('repoSelect').appendChild(opt);
+    document.getElementById('repoSelect').value = name;
+  }
+});
+
+loadCommits();
+</script>
+
+</body>
+</html>
